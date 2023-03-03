@@ -10,8 +10,7 @@
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="HandheldFriendly" content="true" />
 
-    <title>WEBSOCKET Math iink</title>
-
+    <title>WEBSOCKET Math iink Zoom Problem</title>
     <link rel="stylesheet" href="../examples.css" />
     <link
       rel="stylesheet"
@@ -87,9 +86,7 @@
       const convertElement = document.getElementById("convert");
       const zoomInElement = document.getElementById("zoom-in");
       const zoomOutElement = document.getElementById("zoom-out");
-
-      let zoomScale = 1.0;
-
+     
       editorElement.addEventListener("changed", (event) => {
         undoElement.disabled = !event.detail.canUndo;
         redoElement.disabled = !event.detail.canRedo;
@@ -133,15 +130,18 @@
         editorElement.editor.convert();
       });
 
+      // zoom related work
+
+      let zoomScale = 1.0;
+      let width = 720;
+      let height = 480;
+
       zoomInElement.addEventListener("click", () => {
         if (zoomScale < 2.0) {
           zoomScale += 0.1;
         }
         const editorDiv = editorElement.editor.domElement;
-        // let width = editorDiv.offsetWidth;
-        // let height = editorDiv.offsetHeight;
-        let width = 720;
-        let height = 480;
+      
 
         editorDiv.style.width = width * zoomScale + "px";
         editorDiv.style.height = height * zoomScale + "px";
@@ -156,8 +156,6 @@
         }
         console.log({ zoomScale });
         const editorDiv = editorElement.editor.domElement;
-        let width = 720;
-        let height = 480;
 
         editorDiv.style.width = width * zoomScale + "px";
         editorDiv.style.height = height * zoomScale + "px";
