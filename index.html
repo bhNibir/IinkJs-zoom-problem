@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="HandheldFriendly" content="true" />
+
+    <title>WEBSOCKET Math iink</title>
+
+    <link rel="stylesheet" href="../examples.css" />
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/katex@0.12.0/dist/katex.min.css"
+      integrity="sha384-AfEj0r4/OFrOo5t7NnNe46zW/tFgW6x/bCJG8FqQCEo3+Aro6EYUG4+cU+KJWu/X"
+      crossorigin="anonymous"
+    />
+
+    <script
+      defer
+      src="https://cdn.jsdelivr.net/npm/katex@0.12.0/dist/katex.min.js"
+      integrity="sha384-g7c+Jr9ZivxKLnZTDUhnkOnsh30B4H0rpLUpJ4jAIKs4fnJI+sEnkvrMWph2EDg4"
+      crossorigin="anonymous"
+    ></script>
+    <script src="https://code.jquery.com/pep/0.4.3/pep.js"></script>
+    <script src="node_modules/iink-js/dist/iink.min.js"></script>
+
+    <style>
+      #editor-area {
+        display: flex;
+        justify-content: center;
+      }
+
+      .ms-editor {
+        width: 720px;
+        /* height: calc(100vh - 152px); */
+        height: 480px;
+        touch-action: none;
+        background-color: #cd1e3c;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div id="result"></div>
+    <div>
+      <nav>
+        <div class="button-div">
+          <button
+            id="clear"
+            class="nav-btn btn-fab-mini btn-lightBlue"
+            disabled
+          >
+            <img src="./assets/img/clear.svg" />
+          </button>
+          <button id="undo" class="nav-btn btn-fab-mini btn-lightBlue" disabled>
+            <img src="./assets/img/undo.svg" />
+          </button>
+          <button id="redo" class="nav-btn btn-fab-mini btn-lightBlue" disabled>
+            <img src="./assets/img/redo.svg" />
+          </button>
+          <button id="zoom-in" class="nav-btn btn-fab-mini btn-lightBlue">
+            +
+          </button>
+          <button id="zoom-out" class="nav-btn btn-fab-mini btn-lightBlue">
+            -
+          </button>
+        </div>
+        <div class="spacer"></div>
+        <button class="classic-btn" id="convert" disabled>Convert</button>
+      </nav>
+      <div id="editor-area">
+        <div id="editor" touch-action="none"></div>
+      </div>
+      <div style="height: 200px"></div>
+    </div>
+    <script>
+      const editorElement = document.getElementById("editor");
+      const resultElement = document.getElementById("result");
+      const undoElement = document.getElementById("undo");
+      const redoElement = document.getElementById("redo");
+      const clearElement = document.getElementById("clear");
+      const convertElement = document.getElementById("convert");
+      const zoomInElement = document.getElementById("zoom-in");
+      const zoomOutElement = document.getElementById("zoom-out");
+
+      let zoomScale = 1.0;
+
+      editorElement.addEventListener("changed", (event) => {
+        undoElement.disabled = !event.detail.canUndo;
+        redoElement.disabled = !event.detail.canRedo;
+        clearElement.disabled = event.detail.isEmpty;
+      });
+
+      function cleanLatex(latexExport) {
+        if (latexExport.includes("\\\\")) {
+          const steps = "\\begin{align*}" + latexExport + "\\end{align*}";
+          return steps
+            .replace("\\begin{aligned}", "")
+            .replace("\\end{aligned}", "")
+            .replace(new RegExp("(align.{1})", "g"), "aligned");
+        }
+        return latexExport.replace(new RegExp("(align.{1})", "g"), "aligned");
+      }
+
+      editorElement.addEventListener("exported", (evt) => {
+        const exports = evt.detail.exports;
+        if (exports && exports["application/x-latex"]) {
+          katex.render(
+            cleanLatex(exports["application/x-latex"]),
+            resultElement
+          );
+          convertElement.disabled = false;
+        } else {
+          convertElement.disabled = true;
+          resultElement.innerHTML = "";
+        }
+      });
+      undoElement.addEventListener("click", () => {
+        editorElement.editor.undo();
+      });
+      redoElement.addEventListener("click", () => {
+        editorElement.editor.redo();
+      });
+      clearElement.addEventListener("click", () => {
+        editorElement.editor.clear();
+      });
+      convertElement.addEventListener("click", () => {
+        editorElement.editor.convert();
+      });
+
+      zoomInElement.addEventListener("click", () => {
+        if (zoomScale < 2.0) {
+          zoomScale += 0.1;
+        }
+        const editorDiv = editorElement.editor.domElement;
+        // let width = editorDiv.offsetWidth;
+        // let height = editorDiv.offsetHeight;
+        let width = 720;
+        let height = 480;
+
+        editorDiv.style.width = width * zoomScale + "px";
+        editorDiv.style.height = height * zoomScale + "px";
+        // editorElement.editor.zoomIn();
+        console.log("zoom in");
+      });
+
+      zoomOutElement.addEventListener("click", () => {
+        console.log({ zoomScale });
+        if (zoomScale > 1.0) {
+          zoomScale -= 0.1;
+        }
+        console.log({ zoomScale });
+        const editorDiv = editorElement.editor.domElement;
+        let width = 720;
+        let height = 480;
+
+        editorDiv.style.width = width * zoomScale + "px";
+        editorDiv.style.height = height * zoomScale + "px";
+        console.log("zoom out");
+      });
+
+      /**
+       * Attach an editor to the document
+       * @param {Element} The DOM element to attach the ink paper
+       * @param {Object} The recognition parameters
+       */
+      iink.register(editorElement, {
+        recognitionParams: {
+          type: "MATH",
+          protocol: "WEBSOCKET",
+          server: {
+            scheme: "https",
+            host: "webdemoapi.myscript.com",
+            applicationKey: "4c221e0f-9fc8-4db5-95cc-84089ca3e86b",
+            hmacKey: "0bf27f75-db9e-489c-ad26-0b46d87aba2a",
+          },
+          iink: {
+            math: {
+              mimeTypes: [
+                "application/x-latex",
+                "application/vnd.myscript.jiix",
+                "application/mathml+xml",
+              ],
+            },
+            export: {
+              jiix: {
+                strokes: true,
+              },
+            },
+          },
+        },
+      });
+
+      window.addEventListener("resize", () => {
+        editorElement.editor.resize();
+      });
+    </script>
+  </body>
+</html>
